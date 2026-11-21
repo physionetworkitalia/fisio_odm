@@ -1,6 +1,6 @@
 # Fisio — Équipe connessa
 
-Gestionale **HTML, CSS e JavaScript** per GitHub Pages, con accesso Google (Firebase Authentication) e dati condivisi su Cloud Firestore. Non richiede Excel né un server applicativo da gestire. Non è ancora collegato al tuo progetto Firebase: `config.js` contiene campi vuoti.
+Gestionale **HTML, CSS e JavaScript** per GitHub Pages, con accesso email e password (Firebase Authentication) e dati condivisi su Cloud Firestore. Non richiede Excel né un server applicativo da gestire. Non è ancora collegato al tuo progetto Firebase: `config.js` contiene campi vuoti.
 
 ## Prova subito
 
@@ -24,7 +24,7 @@ Apri `http://localhost:8000` e scegli **Prova con dati fittizi**. La demo funzio
 - Riequilibrio esplicito con differenza massima di un paziente tra i disponibili, se desiderato. Può cambiare anche assegnazioni manuali: viene chiesta conferma.
 - Piano giornaliero pubblicabile e revisionabile. Ogni nuova pubblicazione conserva la versione precedente.
 - Scheda personale stampabile con aggiunti, aggiornati, rimossi, motivo del passaggio e stato del trattamento. Confronto con l'ultimo giorno precedente pubblicato, anche se non coincide con ieri.
-- Accessi abilitati nominativamente tramite UID Firebase. Un account Google da solo non consente di leggere i pazienti.
+- Accessi abilitati nominativamente tramite UID Firebase. Un account Firebase da solo non consente di leggere i pazienti.
 - Aggiornamenti in tempo reale, controllo delle revisioni per evitare sovrascritture concorrenti, registro tecnico delle modifiche principali.
 
 I dati paziente dimostrativi non sono inclusi nella configurazione iniziale condivisa. L'inizializzazione carica solo équipe, reparti e rotazioni.
@@ -51,9 +51,10 @@ window.FISIO_CONFIG = {
 
 Questi sono parametri pubblici dell'app web. **Non inserire password, chiavi private, file service account o credenziali Admin nel repository.** Le autorizzazioni sono applicate dalle regole Firestore, non nascondendo la configurazione web.
 
-### 2. Abilita Google e crea il database
+### 2. Abilita Email/Password e crea il database
 
-- In **Authentication → Sign-in method**, abilita Google e configura il support email richiesto dalla console.
+- In **Authentication → Sign-in method**, abilita **Email/Password** (la prima opzione; non serve il link via email).
+- In **Authentication → Users → Aggiungi utente**, crea il tuo utente (email e password) e uno per ogni collega. Non esiste registrazione pubblica dal sito.
 - In **Authentication → Settings → Authorized domains**, aggiungi `TUO-UTENTE.github.io` (solo il dominio, senza nome repository o `/`). Se usi un dominio personalizzato, aggiungi anche quello. Per prove locali aggiungi esplicitamente `localhost`.
 - Crea **Cloud Firestore**, database `(default)`, scegliendo intenzionalmente la localizzazione coerente con la tua organizzazione. Parti con regole restrittive, non con accesso pubblico in modalità test.
 - In **Firestore → Rules**, sostituisci il contenuto con il file `firestore.rules` e pubblica.
@@ -82,7 +83,7 @@ Non sono richiesti GitHub Secrets per la configurazione web Firebase. Le credenz
 
 Il primo coordinatore si abilita dalla console Firebase, una sola volta. Non c'è un pulsante pubblico che consenta di attribuirsi privilegi.
 
-1. Apri il sito e accedi con il tuo account Google.
+1. Apri il sito e accedi con email e password.
 2. La pagina mostra **Account non ancora abilitato** e il tuo **UID**. Puoi trovarlo anche in Firebase Authentication → Users.
 3. In Firestore crea il documento `clinics/odm/members/IL_TUO_UID`. Se la console richiede il documento intermedio `clinics/odm`, puoi crearlo con un campo descrittivo `name`.
 4. Inserisci esattamente questi campi, con i tipi indicati:
@@ -100,7 +101,7 @@ Se cambi `clinicId` in `config.js`, usa lo stesso identificativo nei percorsi Fi
 
 ### 5. Abilita gli altri colleghi
 
-1. Ogni collega accede al sito con Google e ti comunica UID e indirizzo account.
+1. Crea l’utente del collega in Firebase Authentication → Users. Il collega accede al sito e ti comunica l’UID che compare (è visibile anche nell’elenco Users).
 2. Verifica in Firebase Authentication che l'UID corrisponda effettivamente al collega.
 3. Come coordinatore apri **Accessi**, inserisci l'UID, scegli il ruolo e associa il fisioterapista.
 4. Per il ruolo `therapist`, il codice fisioterapista è obbligatorio. Evita di associare lo stesso codice a persone diverse.
@@ -136,7 +137,7 @@ clinics/{clinicId}/audit/{eventId}                   operazione, autore e data
 
 Per questo team il modello usa un documento operativo con revisioni e transazioni, più documenti separati per piani, versioni e trattamenti. Limiti applicativi: **500 pazienti complessivi in anagrafica operativa**, payload operativo **700 KB**. Lo storico dei piani è separato. Prima di raggiungere questi limiti serve una manutenzione pianificata o una migrazione verso documenti per singolo paziente. Non eliminare manualmente pazienti o codici senza controllare riferimenti e storico. I conteggi sono per paziente e non rappresentano minuti, intensità o appropriatezza clinica.
 
-I pazienti non vengono salvati in `localStorage` o in una cache persistente Firestore. La sessione Google usa persistenza di sessione del browser. Le viste tengono dati in memoria durante l'accesso; stampe e PDF sono copie che l'operatore deve gestire. Configura nel progetto Firebase le politiche di backup, conservazione e monitoraggio adeguate: non sono implementate dal sito statico. Il registro tecnico delle operazioni non sostituisce un sistema aziendale completo di tracciamento degli accessi e delle letture.
+I pazienti non vengono salvati in `localStorage` o in una cache persistente Firestore. La sessione di accesso usa persistenza di sessione del browser. Le viste tengono dati in memoria durante l'accesso; stampe e PDF sono copie che l'operatore deve gestire. Configura nel progetto Firebase le politiche di backup, conservazione e monitoraggio adeguate: non sono implementate dal sito statico. Il registro tecnico delle operazioni non sostituisce un sistema aziendale completo di tracciamento degli accessi e delle letture.
 
 Prima di introdurre dati sanitari reali, fai validare dal responsabile aziendale il progetto Firebase, le abilitazioni, le ubicazioni dei dati e la procedura operativa. Questo pacchetto non costituisce una certificazione di conformità o una cartella clinica certificata.
 
@@ -158,7 +159,8 @@ Alla consegna sono passati i 13 test del motore e il test DOM. La suite delle re
 ## Problemi frequenti
 
 - **Firebase da configurare**: compila i quattro campi di `config.js` e pubblica il commit.
-- **Popup bloccato**: consenti il popup per il sito. Non viene richiesto di incollare password Google.
+- **Email o password non corretti**: controlla che l'utente esista in Authentication → Users; usa "Password dimenticata?" per reimpostarla.
+- **Pulsante Accedi grigio**: `config.js` è vuoto o errato.
 - **auth/unauthorized-domain**: aggiungi il dominio esatto in Authentication → Authorized domains.
 - **permission-denied**: verifica regole pubblicate, `clinicId`, UID, tipi dei campi, `active: true`, ruolo e associazione operatore.
 - **Nessun dato condiviso**: assicurati di essere nella versione Firebase e non nella demo; confronta `projectId` e `clinicId` sui dispositivi.
@@ -168,7 +170,7 @@ Alla consegna sono passati i 13 test del motore e il test DOM. La suite delle re
 
 ## Riferimenti ufficiali
 
-- Google sign-in: https://firebase.google.com/docs/auth/web/google-signin
+- Email/password: https://firebase.google.com/docs/auth/web/password-auth
 - Firebase via CDN: https://firebase.google.com/docs/web/alt-setup
 - Regole di sicurezza: https://firebase.google.com/docs/firestore/security/rules-conditions
 - Transazioni: https://firebase.google.com/docs/firestore/manage-data/transactions

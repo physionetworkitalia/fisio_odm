@@ -1,12 +1,11 @@
 rules_version = '2';
 service cloud.firestore {
  match /databases/{database}/documents {
-  function googleUser() {
-   return request.auth != null && request.auth.token.email_verified == true
-    && request.auth.token.firebase.sign_in_provider == 'google.com';
+  function passwordUser() {
+   return request.auth != null && request.auth.token.firebase.sign_in_provider == 'password';
   }
   function memberPath(c) { return /databases/$(database)/documents/clinics/$(c)/members/$(request.auth.uid); }
-  function member(c) { return googleUser() && exists(memberPath(c)) && get(memberPath(c)).data.active == true; }
+  function member(c) { return passwordUser() && exists(memberPath(c)) && get(memberPath(c)).data.active == true; }
   function coordinator(c) { return member(c) && get(memberPath(c)).data.role == 'coordinator'; }
   function staffId(s) { return s is string && s.matches('F(0[1-9]|1[0-5])'); }
   function memberData(d) {
@@ -26,7 +25,7 @@ service cloud.firestore {
     && payload(d.payload) && d.revision is int && d.updatedBy == request.auth.uid && d.updatedAt == request.time;
   }
   match /clinics/{clinic}/members/{uid} {
-   allow get: if googleUser() && (uid == request.auth.uid || coordinator(clinic));
+   allow get: if passwordUser() && (uid == request.auth.uid || coordinator(clinic));
    allow list: if coordinator(clinic);
    allow create, update: if coordinator(clinic) && uid != request.auth.uid && memberData(request.resource.data);
    allow delete: if false;

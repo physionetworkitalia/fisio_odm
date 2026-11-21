@@ -13,7 +13,7 @@ export async function connect(config,handlers){
  const coord=()=>{allowed();if(member.role!=='coordinator')throw Error('Operazione riservata al coordinatore.');};
  const audit=(tx,action)=>tx.set(F.doc(F.collection(db,root,'audit')),{action,actor:user.uid,at:F.serverTimestamp()});
  return {
-  login:()=>U.signInWithPopup(auth,new U.GoogleAuthProvider()),logout:()=>U.signOut(auth),
+  login:(email,password)=>U.signInWithEmailAndPassword(auth,email,password),reset:email=>U.sendPasswordResetEmail(auth,email),logout:()=>U.signOut(auth),
   async save(data,expected,action){coord();return F.runTransaction(db,async tx=>{const snap=await tx.get(stateRef),rev=snap.exists()?snap.data().revision:0;if(rev!==expected)throw Error('Un collega ha aggiornato i dati. Riapri la scheda prima di salvare.');tx.set(stateRef,{payload:data,revision:rev+1,updatedBy:user.uid,updatedAt:F.serverTimestamp()});audit(tx,action);});},
   subscribeDay(date,onPlan,onDone,onPrevious){allowed();dayOffs.forEach(f=>f());dayOffs=[];const my=++generation;
    dayOffs.push(F.onSnapshot(ref('plans',date),s=>{if(my===generation)onPlan(s.exists()?s.data():null);},error));
