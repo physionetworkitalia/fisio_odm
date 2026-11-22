@@ -15,7 +15,8 @@ service cloud.firestore {
   }
   function payload(p) {
    return p is map && p.keys().hasAll(['version','staff','patients','availability','plans','wardFloors','rotations','dhIsBarra'])
-    && p.keys().hasOnly(['version','staff','patients','availability','plans','wardFloors','rotations','dhIsBarra'])
+    && p.keys().hasOnly(['version','staff','patients','availability','plans','wardFloors','rotations','dhIsBarra','barraDefault'])
+    && (!('barraDefault' in p) || p.barraDefault is list)
     && p.version == 2 && p.staff is list && p.staff.size() == 15
     && p.patients is list && p.patients.size() <= 500 && p.availability is map && p.plans is map
     && p.wardFloors is map && p.rotations is map && p.dhIsBarra is bool;
@@ -60,7 +61,7 @@ service cloud.firestore {
    match /completions/{patient} {
     function assigned() {
      let p = get(/databases/$(database)/documents/clinics/$(clinic)/plans/$(date)).data;
-     return patient in p.assignments && (coordinator(clinic) || p.assignments[patient] == get(memberPath(clinic)).data.staffId);
+     return patient in p.assignments && (coordinator(clinic) || p.assignments[patient] == 'DH' || p.assignments[patient] == get(memberPath(clinic)).data.staffId);
     }
     allow read: if member(clinic);
     allow create, update: if member(clinic) && assigned()
@@ -69,6 +70,41 @@ service cloud.firestore {
      && request.resource.data.done is bool && request.resource.data.updatedBy == request.auth.uid
      && request.resource.data.updatedAt == request.time;
     allow delete: if false;
+   }
+  }
+  match /clinics/{clinic}/leave/{id} {
+   allow read: if member(clinic);
+   allow create, update: if member(clinic)
+    && request.resource.data.keys().hasAll(['date','staffId','status','by','at']) && request.resource.data.keys().hasOnly(['date','staffId','status','by','at'])
+    && staffId(request.resource.data.staffId) && request.resource.data.date is string && request.resource.data.date.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}')
+    && id == request.resource.data.date + '_' + request.resource.data.staffId && request.resource.data.status == 'Assente'
+    && request.resource.data.by == request.auth.uid && request.resource.data.at == request.time
+    && (coordinator(clinic) || get(memberPath(clinic)).data.staffId == request.resource.data.staffId);
+   allow delete: if member(clinic) && (coordinator(clinic) || get(memberPath(clinic)).data.staffId == resource.data.staffId);
+  }
+  match /clinics/{clinic}/patientEdits/{pid} {
+   allow read: if member(clinic);
+   allow create, update: if member(clinic) && pid.matches('[-a-zA-Z0-9]{1,80}')
+    && request.resource.data.keys().hasAll(['room','ward','diagnosis','treatment','updatedBy','updatedAt']) && request.resource.data.keys().hasOnly(['room','ward','diagnosis','treatment','updatedBy','updatedAt'])
+    && request.resource.data.room is string && request.resource.data.room.size() <= 100 && request.resource.data.ward is string && request.resource.data.ward.size() <= 100
+    && request.resource.data.diagnosis is string && request.resource.data.diagnosis.size() <= 600 && request.resource.data.treatment is string && request.resource.data.treatment.size() <= 600
+    && request.resource.data.updatedBy == request.auth.uid && request.resource.data.updatedAt == request.time;
+   allow delete: if false;
+  }
+  match /clinics/{clinic}/patientStats/{pid} {
+   allow read: if member(clinic);
+   allow create, update: if member(clinic) && pid.matches('[-a-zA-Z0-9]{1,80}')
+    && request.resource.data.keys().hasOnly(['count','last','treatedBy','lastNote','lastNoteDate','lastNoteBy','updatedBy','updatedAt'])
+    && (!('count' in request.resource.data) || (request.resource.data.count is int && request.resource.data.count >= 0 && request.resource.data.count <= 5000))
+    && (!('treatedBy' in request.resource.data) || request.resource.data.treatedBy is map)
+    && (!('lastNote' in request.resource.data) || (request.resource.data.lastNote is string && request.resource.data.lastNote.size() <= 1000))
+    && request.resource.data.updatedBy == request.auth.uid && request.resource.data.updatedAt == request.time;
+   allow delete: if false;
+   match /notes/{note} {
+    allow read: if member(clinic);
+    allow create: if member(clinic) && request.resource.data.keys().hasAll(['text','date','staffId','by','at']) && request.resource.data.keys().hasOnly(['text','date','staffId','by','at'])
+     && request.resource.data.text is string && request.resource.data.text.size() <= 1000 && request.resource.data.by == request.auth.uid && request.resource.data.at == request.time;
+    allow update, delete: if false;
    }
   }
   match /clinics/{clinic}/audit/{event} {

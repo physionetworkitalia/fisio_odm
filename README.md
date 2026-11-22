@@ -175,3 +175,17 @@ Alla consegna sono passati i 13 test del motore e il test DOM. La suite delle re
 - Regole di sicurezza: https://firebase.google.com/docs/firestore/security/rules-conditions
 - Transazioni: https://firebase.google.com/docs/firestore/manage-data/transactions
 - GitHub Pages con Actions: https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages
+
+
+## Novità: scheda personale, DH ODM, Barra
+
+- **Aggiornamento paziente**: ogni fisioterapista (o il coordinatore) apre «Aggiorna» su un paziente, modifica reparto, stanza, diagnosi e trattamento e scrive le note sull'ultimo trattamento. Lo storico delle note resta consultabile nella stessa finestra.
+- **Contatore trattamenti**: ogni spunta «Completato» incrementa il contatore del paziente; al 10° e ai multipli di 10 compare l'avviso «Rinnovo presa in carico». Il contatore parte da zero dalla data di aggiornamento.
+- **Pazienti nuovi**: nella scheda personale e nell'elenco sono evidenziati in giallo i pazienti mai trattati da quel fisioterapista.
+- **Assenza di domani**: dalla scheda personale «Segnala assenza domani» aggiorna subito il piano del giorno successivo (se non è già stato pubblicato).
+- **DH ODM**: sezione dedicata ai pazienti del solo gruppo DH ODM; non rientrano nei conteggi di distribuzione dei carichi.
+- **Barra**: chi è a Barra non entra nella rotazione di giornata. Izzo è a Barra di default (modificabile in «Équipe e reparti»). Barra non coincide con la squadra Rianimazione.
+- **Reparto Neurologia** eliminato. Dalla sezione «Équipe e reparti» ogni reparto senza pazienti si può eliminare.
+- I fisioterapisti sono sempre in ordine alfabetico.
+
+**Importante dopo l'aggiornamento:** pubblica di nuovo `firestore.rules` in Firebase → Firestore → Regole. Senza le nuove regole note, assenze e contatore non funzionano.
